@@ -12,13 +12,12 @@ public class Vacancy {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String name;
-    private String platform;
-    private Long platformId;
+    private Platform platform;
     private String area;
     private String company;
     private String salary;
     private String schedule;
-    private int experience;
+    private String experience;
     private String url;
 
     public Long getId() {
@@ -37,20 +36,12 @@ public class Vacancy {
         this.name = name;
     }
 
-    public String getPlatform() {
+    public Platform getPlatform() {
         return platform;
     }
 
-    public void setPlatform(String platform) {
+    public void setPlatform(Platform platform) {
         this.platform = platform;
-    }
-
-    public Long getPlatformId() {
-        return platformId;
-    }
-
-    public void setPlatformId(Long platformId) {
-        this.platformId = platformId;
     }
 
     public String getArea() {
@@ -85,11 +76,11 @@ public class Vacancy {
         this.schedule = schedule;
     }
 
-    public int getExperience() {
+    public String getExperience() {
         return experience;
     }
 
-    public void setExperience(int experience) {
+    public void setExperience(String experience) {
         this.experience = experience;
     }
 
