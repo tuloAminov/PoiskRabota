@@ -1,7 +1,6 @@
 package com.example.telegrambot.services;
 
 import com.example.telegrambot.config.BotConfig;
-import com.example.telegrambot.entities.Platform;
 import com.example.telegrambot.entities.User;
 import com.example.telegrambot.entities.Vacancy;
 import com.vdurmont.emoji.EmojiParser;
@@ -34,11 +33,13 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private final BotConfig config;
     private final UserService userService;
+    private final VacancyService vacancyService;
 
     @Autowired
-    public TelegramBot(BotConfig config, UserService userService) {
+    public TelegramBot(BotConfig config, UserService userService, VacancyService vacancyService) {
         this.config = config;
         this.userService = userService;
+        this.vacancyService = vacancyService;
         List<BotCommand> commandList = new ArrayList<>();
         commandList.add(new BotCommand("/start", "start"));
         try {
@@ -66,13 +67,15 @@ public class TelegramBot extends TelegramLongPollingBot {
             String messageText = update.getMessage().getText();
             long chatId = update.getMessage().getChatId();
             if (messageText.contains("/start")) {
-                /*startCommandReceived(chatId, update.getMessage().getChat().getFirstName());*/
-                startCommandReceived(chatId, vacancies().get(19).toString());
+                getVacancies("https://api.hh.ru/vacancies?text=java&experience=noExperience&area=2");
+                getVacancies("https://api.zarplata.ru/vacancies?text=java");
+                sendMessage(chatId, vacancyService.vacancies().get(0).toString());
+                sendMessage(chatId, vacancyService.vacancies().get(1).toString());
+                sendMessage(chatId, vacancyService.vacancies().get(2).toString());
             }
-            else if (messageText.contains("/start")) {
-
+            else {
+                sendMessage(chatId, "errorrrrr");
             }
-
         }
     }
 
@@ -107,27 +110,24 @@ public class TelegramBot extends TelegramLongPollingBot {
         return stringBuilder.toString();
     }
 
-    public ArrayList<Vacancy> vacancies() throws IOException {
-        ArrayList<Vacancy> vacancies = new ArrayList<>();
-        JSONArray jsonArray =  new JSONObject(getStringBuilder("https://api.hh.ru/vacancies?text=java&experience=noExperience&area=2")
+    public void getVacancies(String url) throws IOException {
+        JSONArray jsonArray =  new JSONObject(getStringBuilder(url)
                 .toString()).getJSONArray("items");
 
         for (Object jsonObject : jsonArray) {
             JSONObject moJson = (JSONObject) jsonObject;
             Vacancy vacancy = new Vacancy();
             vacancy.setName(moJson.get("name").toString());
-            vacancy.setPlatform(Platform.HH);
-            vacancy.setArea(moJson.get("area").toString());
-            vacancy.setCompany(moJson.get("employer").toString());
+            vacancy.setArea(new JSONObject(moJson.get("area").toString()).get("name").toString());
+            vacancy.setCompany(new JSONObject(moJson.get("employer").toString()).get("name").toString());
             vacancy.setSalary(moJson.get("salary").toString());
             vacancy.setSchedule(moJson.get("schedule").toString());
             vacancy.setExperience(moJson.get("experience").toString());
             vacancy.setUrl(moJson.get("url").toString());
 
-            vacancies.add(vacancy);
+            vacancyService.saveVacancy(vacancy);
         }
 
-        return vacancies;
     }
 
     private static StringBuilder getStringBuilder(String url) throws IOException {
