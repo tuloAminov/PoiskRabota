@@ -72,6 +72,12 @@ public class TelegramBot extends TelegramLongPollingBot {
                 sendMessage(chatId, vacancyService.vacancies().get(0).toString());
                 sendMessage(chatId, vacancyService.vacancies().get(1).toString());
                 sendMessage(chatId, vacancyService.vacancies().get(2).toString());
+
+                Vacancy vacancy2 = vacancyService.vacancies().get(0);
+                ArrayList<Vacancy> vacancies2 = new ArrayList<>();
+                vacancies2.add(vacancy2);
+                sendMessage(chatId, String.valueOf(vacancies2.contains(vacancy2)));
+                sendMessage(chatId, vacancyService.existsVacancy(vacancyService.vacancies().get(0)));
             }
             else {
                 sendMessage(chatId, "errorrrrr");

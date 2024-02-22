@@ -5,6 +5,7 @@ import com.example.telegrambot.repositories.VacancyRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -17,7 +18,18 @@ public class VacancyService {
     }
 
     public void saveVacancy(Vacancy vacancy) {
-        vacancyRepository.save(vacancy);
+        if (!vacancies().contains(vacancy)) {
+            vacancyRepository.save(vacancy);
+        }
+    }
+
+    public String existsVacancy(Vacancy vacancy) {
+        if (vacancies().contains(vacancy)) {
+            return "yest";
+        }
+        else {
+            return "nest";
+        }
     }
 
     public List<Vacancy> vacancies() {
