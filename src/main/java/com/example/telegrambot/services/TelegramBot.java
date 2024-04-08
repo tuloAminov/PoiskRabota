@@ -1,7 +1,9 @@
 package com.example.telegrambot.services;
 
 import com.example.telegrambot.config.BotConfig;
+import com.example.telegrambot.entities.Params;
 import com.example.telegrambot.entities.User;
+import com.example.telegrambot.entities.UserParams;
 import com.example.telegrambot.entities.Vacancy;
 import com.vdurmont.emoji.EmojiParser;
 import lombok.SneakyThrows;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
@@ -30,24 +33,54 @@ import java.util.List;
 @Component
 @Slf4j
 public class TelegramBot extends TelegramLongPollingBot {
-
     private final BotConfig config;
     private final UserService userService;
     private final VacancyService vacancyService;
+    private final UserParamsService userParamsService;
 
     @Autowired
-    public TelegramBot(BotConfig config, UserService userService, VacancyService vacancyService) {
+    public TelegramBot(BotConfig config, UserService userService, VacancyService vacancyService, UserParamsService userParamsService) {
         this.config = config;
         this.userService = userService;
         this.vacancyService = vacancyService;
+        this.userParamsService = userParamsService;
         List<BotCommand> commandList = new ArrayList<>();
         commandList.add(new BotCommand("/start", "start"));
+        commandList.add(new BotCommand("/find", "find"));
         try {
             this.execute(new SetMyCommands(commandList, new BotCommandScopeDefault(), null));
         }
         catch (TelegramApiException e){
             log.info("Error setting bot's command list: " + e.getMessage());
         }
+    }
+
+    private void sendMessage(long chatId, String textToSend) {
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setChatId(String.valueOf(chatId));
+        sendMessage.setText(textToSend);
+
+        executeMessage(sendMessage);
+    }
+
+    private void sendReplyButton(long chatId, String textToSend) {
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setChatId(String.valueOf(chatId));
+        sendMessage.setText(textToSend);
+
+        ButtonClass buttonClass = new ButtonClass();
+        buttonClass.setButtons(sendMessage);
+        executeMessage(sendMessage);
+    }
+
+    private void sendInlineButton(long chatId, String textToSend) {
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setChatId(String.valueOf(chatId));
+        sendMessage.setText(textToSend);
+
+        ButtonClass buttonClass = new ButtonClass();
+        buttonClass.findCity(sendMessage);
+        executeMessage(sendMessage);
     }
 
     @Override
@@ -60,49 +93,76 @@ public class TelegramBot extends TelegramLongPollingBot {
         return config.getBotName();
     }
 
-    @SneakyThrows
-    @Override
-    public void onUpdateReceived(Update update) {
-        if(update.hasMessage() && update.getMessage().hasText()) {
-            String messageText = update.getMessage().getText();
-            long chatId = update.getMessage().getChatId();
-            if (messageText.contains("/start")) {
-                getVacancies("https://api.hh.ru/vacancies?text=java&experience=noExperience&area=2");
-                getVacancies("https://api.zarplata.ru/vacancies?text=java");
-                sendMessage(chatId, vacancyService.vacancies().get(0).toString());
-                sendMessage(chatId, vacancyService.vacancies().get(1).toString());
-                sendMessage(chatId, vacancyService.vacancies().get(2).toString());
-
-                Vacancy vacancy2 = vacancyService.vacancies().get(0);
-                ArrayList<Vacancy> vacancies2 = new ArrayList<>();
-                vacancies2.add(vacancy2);
-                sendMessage(chatId, String.valueOf(vacancies2.contains(vacancy2)));
-                sendMessage(chatId, vacancyService.existsVacancy(vacancyService.vacancies().get(0)));
-            }
-            else {
-                sendMessage(chatId, "errorrrrr");
-            }
-        }
-    }
-
     private void startCommandReceived(long chatId, String firstName) {
         String answer = EmojiParser.parseToUnicode("Hi, " + firstName + ", nice to meet you!" + " :blush:");
         log.info("Replied to user " + firstName);
         User newUser = new User();
         newUser.setId(chatId);
         userService.addUser(newUser);
-        sendMessage(chatId, answer);
+        UserParams userParams = new UserParams();
+        userParams.setId(chatId);
+        userParamsService.addUserParams(userParams);
+        sendReplyButton(chatId, answer);
     }
 
-    private void sendMessage(long chatId, String textToSend) {
-        SendMessage sendMessage = new SendMessage();
-        sendMessage.setChatId(String.valueOf(chatId));
-        sendMessage.setText(textToSend);
+    private Params param = Params.name;
 
-        try {
-            execute(sendMessage);
+    @SneakyThrows
+    @Override
+    public void onUpdateReceived(Update update) {
+        if(update.hasMessage() && update.getMessage().hasText()) {
+            String messageText = update.getMessage().getText();
+            long chatId = update.getMessage().getChatId();
+            String name = update.getMessage().getForwardSenderName();
+            if (messageText.contains("/start")) {
+                startCommandReceived(chatId, name);
+            }
+
+            else if(messageText.contains("/find")) {
+                param = Params.name;
+                sendMessage(chatId, "Напишите название вакансии");
+            }
+
+            else {
+                switch (param) {
+                    case name:
+                        userParamsService.setName(chatId, messageText);
+                        param = Params.city;
+                        sendMessage(chatId, "В каком городе ты живешь?");
+                        break;
+                    case city:
+                        userParamsService.setCity(chatId, messageText);
+                        param = Params.schedule;
+                        sendMessage(chatId, "Какой у вас опыт работы?");
+                        break;
+                    case schedule:
+                        userParamsService.setSchedule(chatId, messageText);
+                        param = Params.salary;
+                        sendMessage(chatId, "Какую зарплату вы хотите получать?");
+                        break;
+                    case salary:
+                        userParamsService.setSalary(chatId, messageText);
+                        param = Params.start;
+                        sendMessage(chatId, userParamsService.findById(chatId).toString());
+                        break;
+                }
+            }
         }
+    }
 
+    private void executeMessage(SendMessage message){
+        try {
+            execute(message);
+        }
+        catch (TelegramApiException e) {
+            log.error("Error occurred: " + e.getMessage());
+        }
+    }
+
+    private void executeEditMessage(EditMessageText editMessage){
+        try {
+            execute(editMessage);
+        }
         catch (TelegramApiException e) {
             log.error("Error occurred: " + e.getMessage());
         }

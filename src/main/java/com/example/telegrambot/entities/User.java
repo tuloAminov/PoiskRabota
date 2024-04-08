@@ -5,10 +5,12 @@ import com.fasterxml.jackson.annotation.JsonIdentityReference;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@Setter
 @Getter
 @Entity
 @Table(name = "users")
@@ -31,27 +33,4 @@ public class User {
     @JsonIdentityReference(alwaysAsId = true)
     private List<Vacancy> favoriteVacancies = new ArrayList<>();
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public List<Vacancy> getUserVacancies() {
-        return userVacancies;
-    }
-
-    public void setUserVacancies(List<Vacancy> userVacancies) {
-        this.userVacancies = userVacancies;
-    }
-
-    public List<Vacancy> getFavoriteVacancies() {
-        return favoriteVacancies;
-    }
-
-    public void setFavoriteVacancies(List<Vacancy> favoriteVacancies) {
-        this.favoriteVacancies = favoriteVacancies;
-    }
 }
