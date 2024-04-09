@@ -1,4 +1,4 @@
-/*getVacancies("https://api.hh.ru/vacancies?text=java&experience=noExperience&area=2");
+/*              getVacancies("https://api.hh.ru/vacancies?text=java&experience=noExperience&area=2");
                 getVacancies("https://api.zarplata.ru/vacancies?text=java");
                 sendMessage(chatId, vacancyService.vacancies().get(0).toString());
                 sendMessage(chatId, vacancyService.vacancies().get(1).toString());

@@ -45,8 +45,9 @@ public class TelegramBot extends TelegramLongPollingBot {
         this.vacancyService = vacancyService;
         this.userParamsService = userParamsService;
         List<BotCommand> commandList = new ArrayList<>();
-        commandList.add(new BotCommand("/start", "start"));
-        commandList.add(new BotCommand("/find", "find"));
+        commandList.add(new BotCommand("/start", "Начать"));
+        commandList.add(new BotCommand("/params", "Параметры"));
+        commandList.add(new BotCommand("/vacancies", "Вакансии"));
         try {
             this.execute(new SetMyCommands(commandList, new BotCommandScopeDefault(), null));
         }
@@ -98,10 +99,13 @@ public class TelegramBot extends TelegramLongPollingBot {
         log.info("Replied to user " + firstName);
         User newUser = new User();
         newUser.setId(chatId);
-        userService.addUser(newUser);
-        UserParams userParams = new UserParams();
-        userParams.setId(chatId);
-        userParamsService.addUserParams(userParams);
+        if (userService.idContains(newUser)) {
+            userService.addUser(newUser);
+            UserParams userParams = new UserParams();
+            userParams.setId(chatId);
+            userParamsService.addUserParams(userParams);
+        }
+
         sendReplyButton(chatId, answer);
     }
 
@@ -114,11 +118,26 @@ public class TelegramBot extends TelegramLongPollingBot {
             String messageText = update.getMessage().getText();
             long chatId = update.getMessage().getChatId();
             String name = update.getMessage().getForwardSenderName();
+            Url url = new Url();
             if (messageText.contains("/start")) {
                 startCommandReceived(chatId, name);
             }
 
-            else if(messageText.contains("/find")) {
+            else if (messageText.contains("/vacancies")) {
+                UserParams userParams = userParamsService.findById(chatId);
+                String vacancyName = userParams.getVacancyName();
+                String city = userParams.getCity();
+                String schedule = userParams.getSchedule();
+                String salary = userParams.getSalary();
+                saveVacancies(chatId, url.getHhUrl(vacancyName, city, schedule, salary));
+                saveVacancies(chatId, url.getZrUrl(vacancyName, city, schedule, salary));
+
+                sendMessage(chatId, userService.getUserVacancies(chatId).get(0).toString());
+                sendMessage(chatId, userService.getUserVacancies(chatId).get(1).toString());
+                sendMessage(chatId, userService.getUserVacancies(chatId).get(2).toString());
+            }
+
+            else if(messageText.contains("/params")) {
                 param = Params.name;
                 sendMessage(chatId, "Напишите название вакансии");
             }
@@ -176,7 +195,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         return stringBuilder.toString();
     }
 
-    public void getVacancies(String url) throws IOException {
+    public void saveVacancies(long chatId, String url) throws IOException {
         JSONArray jsonArray =  new JSONObject(getStringBuilder(url)
                 .toString()).getJSONArray("items");
 
@@ -192,8 +211,8 @@ public class TelegramBot extends TelegramLongPollingBot {
             vacancy.setUrl(moJson.get("url").toString());
 
             vacancyService.saveVacancy(vacancy);
+            userService.addVacancy(chatId, vacancyService.getIdByUrl(vacancy.getUrl()));
         }
-
     }
 
     private static StringBuilder getStringBuilder(String url) throws IOException {

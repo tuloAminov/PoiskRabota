@@ -17,21 +17,28 @@ public class VacancyService {
     }
 
     public void saveVacancy(Vacancy vacancy) {
-        if (!vacancies().contains(vacancy)) {
+        if (!existsVacancy(vacancy)) {
             vacancyRepository.save(vacancy);
         }
     }
 
-    public String existsVacancy(Vacancy vacancy) {
-        if (vacancies().contains(vacancy)) {
-            return "yest";
+    public boolean existsVacancy(Vacancy vacancy) {
+        boolean res = false;
+        for (Vacancy vacancy1 : vacancies()) {
+            if (vacancy1.getUrl().equals(vacancy.getUrl())) {
+                res = true;
+                break;
+            }
         }
-        else {
-            return "nest";
-        }
+
+        return res;
     }
 
     public List<Vacancy> vacancies() {
         return vacancyRepository.findAll();
+    }
+
+    public long getIdByUrl(String url) {
+        return vacancyRepository.getVacanciesByUrl(url).getId();
     }
 }
