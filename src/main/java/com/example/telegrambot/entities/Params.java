@@ -4,6 +4,6 @@ public enum Params {
     start,
     name,
     city,
-    schedule,
+    experience,
     salary
 }

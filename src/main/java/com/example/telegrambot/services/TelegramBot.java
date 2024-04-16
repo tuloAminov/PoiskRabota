@@ -95,7 +95,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void startCommandReceived(long chatId, String firstName) {
-        String answer = EmojiParser.parseToUnicode("Hi, " + firstName + ", nice to meet you!" + " :blush:");
+        String answer = EmojiParser.parseToUnicode("Добро пожаловать, " + firstName + "!" + " :blush:");
         log.info("Replied to user " + firstName);
         User newUser = new User();
         newUser.setId(chatId);
@@ -110,6 +110,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private Params param = Params.name;
+    private int counter = 0;
 
     @SneakyThrows
     @Override
@@ -117,24 +118,20 @@ public class TelegramBot extends TelegramLongPollingBot {
         if(update.hasMessage() && update.getMessage().hasText()) {
             String messageText = update.getMessage().getText();
             long chatId = update.getMessage().getChatId();
-            String name = update.getMessage().getForwardSenderName();
-            Url url = new Url();
+            String name = update.getMessage().getChat().getFirstName();
+            Info info = new Info();
             if (messageText.contains("/start")) {
                 startCommandReceived(chatId, name);
             }
 
             else if (messageText.contains("/vacancies")) {
-                UserParams userParams = userParamsService.findById(chatId);
-                String vacancyName = userParams.getVacancyName();
-                String city = userParams.getCity();
-                String schedule = userParams.getSchedule();
-                String salary = userParams.getSalary();
-                saveVacancies(chatId, url.getHhUrl(vacancyName, city, schedule, salary));
-                saveVacancies(chatId, url.getZrUrl(vacancyName, city, schedule, salary));
+                getVacancies(counter, chatId, info);
+                counter += 3;
+            }
 
-                sendMessage(chatId, userService.getUserVacancies(chatId).get(0).toString());
-                sendMessage(chatId, userService.getUserVacancies(chatId).get(1).toString());
-                sendMessage(chatId, userService.getUserVacancies(chatId).get(2).toString());
+            else if(messageText.contains("еще")) {
+                getVacancies(counter, chatId, info);
+                counter += 3;
             }
 
             else if(messageText.contains("/params")) {
@@ -150,12 +147,12 @@ public class TelegramBot extends TelegramLongPollingBot {
                         sendMessage(chatId, "В каком городе ты живешь?");
                         break;
                     case city:
-                        userParamsService.setCity(chatId, messageText);
-                        param = Params.schedule;
+                        userParamsService.setCity(chatId, info.getCityNumber(messageText));
+                        param = Params.experience;
                         sendMessage(chatId, "Какой у вас опыт работы?");
                         break;
-                    case schedule:
-                        userParamsService.setSchedule(chatId, messageText);
+                    case experience:
+                        userParamsService.setSchedule(chatId, info.getExperienceNumber(messageText));
                         param = Params.salary;
                         sendMessage(chatId, "Какую зарплату вы хотите получать?");
                         break;
@@ -195,6 +192,28 @@ public class TelegramBot extends TelegramLongPollingBot {
         return stringBuilder.toString();
     }
 
+    public void getVacancies(int i, long chatId, Info url) throws IOException {
+        UserParams userParams = userParamsService.findById(chatId);
+        String vacancyName = userParams.getVacancyName();
+        String city = userParams.getCity();
+        String schedule = userParams.getSchedule();
+        String salary = userParams.getSalary();
+        saveVacancies(chatId, url.getHhUrl(vacancyName, city, schedule, salary));
+        saveVacancies(chatId, url.getZrUrl(vacancyName, city, schedule, salary));
+
+        sendMessage(chatId, userService.getUserVacancies(chatId).get(i).toString());
+        sendMessage(chatId, userService.getUserVacancies(chatId).get(i+1).toString());
+        sendMessage(chatId, userService.getUserVacancies(chatId).get(i+2).toString());
+
+        SendMessage sendMessage2 = new SendMessage();
+        sendMessage2.setChatId(String.valueOf(chatId));
+        sendMessage2.setText("нажимайте на 'еще', если хотите посмотреть еще вакансий");
+
+        ButtonClass buttonClass = new ButtonClass();
+        buttonClass.vacancyButton(sendMessage2);
+        executeMessage(sendMessage2);
+    }
+
     public void saveVacancies(long chatId, String url) throws IOException {
         JSONArray jsonArray =  new JSONObject(getStringBuilder(url)
                 .toString()).getJSONArray("items");
@@ -205,10 +224,16 @@ public class TelegramBot extends TelegramLongPollingBot {
             vacancy.setName(moJson.get("name").toString());
             vacancy.setArea(new JSONObject(moJson.get("area").toString()).get("name").toString());
             vacancy.setCompany(new JSONObject(moJson.get("employer").toString()).get("name").toString());
-            vacancy.setSalary(moJson.get("salary").toString());
+            String salaryFrom = new JSONObject(moJson.get("salary").toString()).get("currency").toString();
+            /*if (salaryFrom == null)
+                salaryFrom = "mmm";
+            String salaryTo = new JSONObject(moJson.get("salary").toString()).get("to").toString();
+            if (salaryTo == null)
+                salaryTo = "nnn";*/
+            vacancy.setSalary(salaryFrom/* + "-" + salaryTo + "Р"*/);
             vacancy.setSchedule(moJson.get("schedule").toString());
             vacancy.setExperience(moJson.get("experience").toString());
-            vacancy.setUrl(moJson.get("url").toString());
+            vacancy.setUrl(moJson.get("alternate_url").toString());
 
             vacancyService.saveVacancy(vacancy);
             userService.addVacancy(chatId, vacancyService.getIdByUrl(vacancy.getUrl()));

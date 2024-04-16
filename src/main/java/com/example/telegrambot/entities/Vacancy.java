@@ -37,9 +37,10 @@ public class Vacancy {
 
     @Override
     public String toString() {
-        return "Vacancy{" +
-                "id=" + id +
-                ", name='" + name + '\'' +
-                '}';
+        return name + ", " +
+                area + ", " +
+                company + ", " +
+                salary + ", " +
+                url;
     }
 }
