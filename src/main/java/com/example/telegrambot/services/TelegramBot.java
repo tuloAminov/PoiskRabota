@@ -226,12 +226,12 @@ public class TelegramBot extends TelegramLongPollingBot {
             vacancy.setArea(new JSONObject(moJson.get("area").toString()).get("name").toString());
             vacancy.setCompany(new JSONObject(moJson.get("employer").toString()).get("name").toString());
             String salaryFrom = new JSONObject(moJson.get("salary").toString()).get("currency").toString();
-            /*if (salaryFrom == null)
-                salaryFrom = "mmm";
+            if (salaryFrom == null)
+                salaryFrom = "";
             String salaryTo = new JSONObject(moJson.get("salary").toString()).get("to").toString();
             if (salaryTo == null)
-                salaryTo = "nnn";*/
-            vacancy.setSalary(salaryFrom/* + "-" + salaryTo + "Р"*/);
+                salaryTo = "";
+            vacancy.setSalary(salaryFrom + "-" + salaryTo + "Р");
             vacancy.setSchedule(moJson.get("schedule").toString());
             vacancy.setExperience(moJson.get("experience").toString());
             vacancy.setUrl(moJson.get("alternate_url").toString());
