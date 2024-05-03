@@ -146,14 +146,15 @@ public class TelegramBot extends TelegramLongPollingBot {
                         userParamsService.setName(chatId, messageText);
                         param = Params.city;
                         sendMessage(chatId, "В каком городе ты живешь?");
+                        sendInlineButton(chatId, "23");
                         break;
                     case city:
-                        userParamsService.setCity(chatId, info.getCityNumber(messageText));
+                        userParamsService.setCity(chatId, messageText);
                         param = Params.experience;
                         sendMessage(chatId, "Какой у вас опыт работы?");
                         break;
                     case experience:
-                        userParamsService.setSchedule(chatId, info.getExperienceNumber(messageText));
+                        userParamsService.setSchedule(chatId, messageText);
                         param = Params.salary;
                         sendMessage(chatId, "Какую зарплату вы хотите получать?");
                         break;
@@ -201,6 +202,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         String salary = userParams.getSalary();
         saveVacancies(chatId, url.getHhUrl(vacancyName, city, schedule, salary));
         saveVacancies(chatId, url.getZrUrl(vacancyName, city, schedule, salary));
+        saveSuperjobVacancies(chatId, vacancyName, city, schedule, salary);
 
         sendMessage(chatId, userService.getUserVacancies(chatId).get(i).toString());
         sendMessage(chatId, userService.getUserVacancies(chatId).get(i+1).toString());
@@ -225,16 +227,44 @@ public class TelegramBot extends TelegramLongPollingBot {
             vacancy.setName(moJson.get("name").toString());
             vacancy.setArea(new JSONObject(moJson.get("area").toString()).get("name").toString());
             vacancy.setCompany(new JSONObject(moJson.get("employer").toString()).get("name").toString());
-            String salaryFrom = new JSONObject(moJson.get("salary").toString()).get("currency").toString();
-            if (salaryFrom == null)
-                salaryFrom = "";
-            String salaryTo = new JSONObject(moJson.get("salary").toString()).get("to").toString();
-            if (salaryTo == null)
-                salaryTo = "";
-            vacancy.setSalary(salaryFrom + "-" + salaryTo + "Р");
+            if (!moJson.get("salary").toString().contains("{")) {
+                vacancy.setSalary("Зарплата не указана");
+
+            }
+            else {
+                String salaryFrom = new JSONObject(moJson.get("salary").toString()).get("from").toString();
+                if (salaryFrom == null)
+                    salaryFrom = "";
+                String salaryTo = new JSONObject(moJson.get("salary").toString()).get("to").toString();
+                if (salaryTo == null)
+                    salaryTo = "";
+                vacancy.setSalary(salaryFrom + "-" + salaryTo + " Р");
+            }
             vacancy.setSchedule(moJson.get("schedule").toString());
             vacancy.setExperience(moJson.get("experience").toString());
             vacancy.setUrl(moJson.get("alternate_url").toString());
+
+            vacancyService.saveVacancy(vacancy);
+            userService.addVacancy(chatId, vacancyService.getIdByUrl(vacancy.getUrl()));
+        }
+    }
+
+    public void saveSuperjobVacancies(long chatId, String vacancyName, String city, String schedule, String salary) throws IOException {
+        Info info = new Info();
+        JSONArray jsonArray =  new JSONObject(info.getSuperjobVacancies(vacancyName, city, schedule, salary))
+                .getJSONArray("objects");
+
+        for (Object jsonObject : jsonArray) {
+            JSONObject moJson = (JSONObject) jsonObject;
+            Vacancy vacancy = new Vacancy();
+            vacancy.setName(moJson.get("profession").toString());
+            vacancy.setArea(new JSONObject(moJson.get("town").toString()).get("title").toString());
+            vacancy.setCompany(new JSONObject(moJson.get("client").toString()).get("title").toString());
+            String salaryFrom = (moJson.get("payment_from").toString());
+            String salaryTo = (moJson.get("payment_to").toString());
+            vacancy.setSalary(salaryFrom + "-" + salaryTo + " Р");
+            vacancy.setExperience(moJson.get("experience").toString());
+            vacancy.setUrl(moJson.get("link").toString());
 
             vacancyService.saveVacancy(vacancy);
             userService.addVacancy(chatId, vacancyService.getIdByUrl(vacancy.getUrl()));
