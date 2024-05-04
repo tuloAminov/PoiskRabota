@@ -47,6 +47,20 @@ public class Info {
         }
     }
 
+    public ArrayList<String> getCities() {
+        ArrayList<String> cities = new ArrayList<>();
+        cities.add("Москва");
+        cities.add("Санкт-Петербург");
+        cities.add("Екатеринбург");
+        cities.add("Новосибирск");
+        cities.add("Казань");
+        cities.add("Ростов");
+        cities.add("Уфа");
+        cities.add("Чита");
+
+        return cities;
+    }
+
     public String getCityNumber(String city) {
         Dictionary<String, Integer> cities = new Hashtable<>();
         cities.put("Москва", 1);
@@ -56,19 +70,22 @@ public class Info {
         return cities.get(city).toString();
     }
 
+    public ArrayList<String> getExperiences() {
+        ArrayList<String> experiences = new ArrayList<>();
+        experiences.add("нет опыта");
+        experiences.add("От 1 года до 3 лет");
+        experiences.add("От 3 до 6 лет");
+        experiences.add("Более 6 лет");
+
+        return experiences;
+    }
+
     public String getExperienceNumber(String experience) {
         Dictionary<String, String> experiences = new Hashtable<>();
-        experiences.put("0", "noExperience");
-        experiences.put("1", "between1And3");
-        experiences.put("2", "between1And3");
-        experiences.put("3", "between1And3");
-        experiences.put("4", "between3And6");
-        experiences.put("5", "between3And6");
-        experiences.put("6", "between3And6");
-        experiences.put("7", "moreThan6");
-        experiences.put("8", "moreThan6");
-        experiences.put("9", "moreThan6");
-        experiences.put("10", "moreThan6");
+        experiences.put("нет опыта", "noExperience");
+        experiences.put("От 1 года до 3 лет", "between1And3");
+        experiences.put("От 3 до 6 лет", "between3And6");
+        experiences.put("Более 6 лет", "moreThan6");
 
         return experiences.get(experience);
     }

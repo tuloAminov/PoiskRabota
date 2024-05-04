@@ -16,8 +16,7 @@ import java.util.List;
 @Component
 @Slf4j
 public class ButtonClass extends TelegramLongPollingBot {
-
-    public synchronized void setButtons(SendMessage sendMessage) {
+    public synchronized void setReplyButtons(SendMessage sendMessage, String[] buttons) {
         ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
         sendMessage.setReplyMarkup(replyKeyboardMarkup);
         replyKeyboardMarkup.setSelective(true);
@@ -26,70 +25,39 @@ public class ButtonClass extends TelegramLongPollingBot {
 
         List<KeyboardRow> keyboard = new ArrayList<>();
 
-        KeyboardRow keyboardFirstRow = new KeyboardRow();
-        keyboardFirstRow.add(new KeyboardButton("Привет"));
+        for (String button : buttons) {
+            KeyboardRow keyboardFirstRow = new KeyboardRow();
+            keyboardFirstRow.add(new KeyboardButton(button));
+            keyboard.add(keyboardFirstRow);
+        }
 
-        KeyboardRow keyboardSecondRow = new KeyboardRow();
-        keyboardSecondRow.add(new KeyboardButton("Помощь"));
-
-        keyboard.add(keyboardFirstRow);
-        keyboard.add(keyboardSecondRow);
         replyKeyboardMarkup.setKeyboard(keyboard);
     }
 
-    public synchronized void vacancyButton(SendMessage sendMessage) {
-        ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
-        sendMessage.setReplyMarkup(replyKeyboardMarkup);
-        replyKeyboardMarkup.setSelective(true);
-        replyKeyboardMarkup.setResizeKeyboard(true);
-        replyKeyboardMarkup.setOneTimeKeyboard(false);
-
-        List<KeyboardRow> keyboard = new ArrayList<>();
-
-        KeyboardRow keyboardFirstRow = new KeyboardRow();
-        keyboardFirstRow.add(new KeyboardButton("Еще"));
-
-        keyboard.add(keyboardFirstRow);
-        replyKeyboardMarkup.setKeyboard(keyboard);
-    }
-
-    public void findCity(SendMessage message) {
+    public void setInlineButton(SendMessage message, String[] buttons) {
         InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
-        List<InlineKeyboardButton> rowInLine = new ArrayList<>();
+        List<InlineKeyboardButton> allLines = new ArrayList<>();
 
-        var moscowButton = new InlineKeyboardButton();
-        moscowButton.setText("Москва");
-        moscowButton.setCallbackData("Москва");
+        for (String i : buttons) {
+            var button = new InlineKeyboardButton();
+            button.setText(i);
+            button.setCallbackData(i);
+            allLines.add(button);
+        }
 
-        var spbButton = new InlineKeyboardButton();
-        spbButton.setText("Санкт-Петербург");
-        spbButton.setCallbackData("Санкт-Петербург");
+        while (!allLines.isEmpty()) {
+            List<InlineKeyboardButton> rowInLine = new ArrayList<>();
+            for (int i = 0; i < 3; i++) {
+                if (!allLines.isEmpty()) {
+                    rowInLine.add(allLines.get(0));
+                    allLines.remove(0);
+                }
+            }
 
-        var ekbButton = new InlineKeyboardButton();
-        ekbButton.setText("Екатеринбург");
-        ekbButton.setCallbackData("Екатеринбург");
+            rowsInLine.add(rowInLine);
+        }
 
-        var nskButton = new InlineKeyboardButton();
-        nskButton.setText("Новосибирск");
-        nskButton.setCallbackData("Новосибирск");
-
-        var kazanButton = new InlineKeyboardButton();
-        kazanButton.setText("Казань");
-        kazanButton.setCallbackData("Казань");
-
-        var rostovButton = new InlineKeyboardButton();
-        rostovButton.setText("Ростов");
-        rostovButton.setCallbackData("Ростов");
-
-        rowInLine.add(moscowButton);
-        rowInLine.add(spbButton);
-        rowInLine.add(ekbButton);
-        rowInLine.add(nskButton);
-        rowInLine.add(kazanButton);
-        rowInLine.add(rostovButton);
-
-        rowsInLine.add(rowInLine);
         markupInLine.setKeyboard(rowsInLine);
         message.setReplyMarkup(markupInLine);
     }

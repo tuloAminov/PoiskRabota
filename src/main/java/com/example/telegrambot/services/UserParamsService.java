@@ -30,7 +30,7 @@ public class UserParamsService {
         userParams2.setVacancyName(name);
         userParams2.setCity(userParams.getCity());
         userParams2.setSalary(userParams.getSalary());
-        userParams2.setSchedule(userParams.getSchedule());
+        userParams2.setExperience(userParams.getExperience());
 
         addUserParams(userParams2);
     }
@@ -42,17 +42,17 @@ public class UserParamsService {
         userParams2.setCity(city);
         userParams2.setVacancyName(userParams.getVacancyName());
         userParams2.setSalary(userParams.getSalary());
-        userParams2.setSchedule(userParams.getSchedule());
+        userParams2.setExperience(userParams.getExperience());
 
         userParamsRepo.deleteById(id);
         addUserParams(userParams2);
     }
 
-    public void setSchedule(Long id, String schedule) {
+    public void setExperience(Long id, String experience) {
         UserParams userParams = findById(id);
         UserParams userParams2 = new UserParams();
         userParams2.setId(id);
-        userParams2.setSchedule(schedule);
+        userParams2.setExperience(experience);
         userParams2.setCity(userParams.getCity());
         userParams2.setSalary(userParams.getSalary());
         userParams2.setVacancyName(userParams.getVacancyName());
@@ -68,7 +68,7 @@ public class UserParamsService {
         userParams2.setSalary(salary);
         userParams2.setCity(userParams.getCity());
         userParams2.setVacancyName(userParams.getVacancyName());
-        userParams2.setSchedule(userParams.getSchedule());
+        userParams2.setExperience(userParams.getExperience());
 
         userParamsRepo.deleteById(id);
         addUserParams(userParams2);

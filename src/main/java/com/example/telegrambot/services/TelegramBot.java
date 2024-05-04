@@ -56,7 +56,6 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-
     private void sendMessage(long chatId, String textToSend) {
         SendMessage sendMessage = new SendMessage();
         sendMessage.setChatId(String.valueOf(chatId));
@@ -65,23 +64,23 @@ public class TelegramBot extends TelegramLongPollingBot {
         executeMessage(sendMessage);
     }
 
-    private void sendReplyButton(long chatId, String textToSend) {
+    private void setInlineButton(long chatId, String textToSend, String[] buttons) {
         SendMessage sendMessage = new SendMessage();
         sendMessage.setChatId(String.valueOf(chatId));
         sendMessage.setText(textToSend);
 
         ButtonClass buttonClass = new ButtonClass();
-        buttonClass.setButtons(sendMessage);
+        buttonClass.setInlineButton(sendMessage, buttons);
         executeMessage(sendMessage);
     }
 
-    private void sendInlineButton(long chatId, String textToSend) {
+    private void setReplyButtons(long chatId, String text, String[] buttons) {
         SendMessage sendMessage = new SendMessage();
         sendMessage.setChatId(String.valueOf(chatId));
-        sendMessage.setText(textToSend);
+        sendMessage.setText(text);
 
         ButtonClass buttonClass = new ButtonClass();
-        buttonClass.findCity(sendMessage);
+        buttonClass.setReplyButtons(sendMessage, buttons);
         executeMessage(sendMessage);
     }
 
@@ -107,7 +106,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             userParamsService.addUserParams(userParams);
         }
 
-        sendReplyButton(chatId, answer);
+        setReplyButtons(chatId, answer, new String[]{"Указать параметры", "Помощь"});
     }
 
     private Params param = Params.name;
@@ -125,17 +124,18 @@ public class TelegramBot extends TelegramLongPollingBot {
                 startCommandReceived(chatId, name);
             }
 
-            else if (messageText.contains("/vacancies")) {
+            else if (messageText.contains("/vacancies") || messageText.contains("Еще") || messageText.contains("Показать вакансии")) {
                 getVacancies(counter, chatId, info);
                 counter += 3;
+                setReplyButtons(chatId, "Нажимайте на 'Еще', если хотите больше вакансий", new String[]{"Еще", "Указать параметры", "Помощь"});
             }
 
-            else if(messageText.contains("еще")) {
-                getVacancies(counter, chatId, info);
-                counter += 3;
+            else if (messageText.contains("Помощь")) {
+                String text = "Укажите параметры по которым необходимо искать вакансии и бот ищет вакансий на сайтах hh, zr и sj";
+                setReplyButtons(chatId, text, new String[]{"Указать параметры", "Помощь"});
             }
 
-            else if(messageText.contains("/params")) {
+            else if(messageText.contains("/params") || messageText.contains("Указать параметры")) {
                 param = Params.name;
                 sendMessage(chatId, "Напишите название вакансии");
             }
@@ -145,25 +145,49 @@ public class TelegramBot extends TelegramLongPollingBot {
                     case name:
                         userParamsService.setName(chatId, messageText);
                         param = Params.city;
-                        sendMessage(chatId, "В каком городе ты живешь?");
-                        sendInlineButton(chatId, "23");
+                        ArrayList<String> cities = info.getCities();
+                        String[] cityButtons = cities.toArray(new String[0]);
+                        setInlineButton(chatId, "Укажите город", cityButtons);
                         break;
                     case city:
                         userParamsService.setCity(chatId, messageText);
                         param = Params.experience;
-                        sendMessage(chatId, "Какой у вас опыт работы?");
+                        ArrayList<String> experiences = info.getExperiences();
+                        String[] experienceButtons = experiences.toArray(new String[0]);
+                        setInlineButton(chatId, "Какой у вас опыт работы?", experienceButtons);
                         break;
                     case experience:
-                        userParamsService.setSchedule(chatId, messageText);
+                        userParamsService.setExperience(chatId, messageText);
                         param = Params.salary;
                         sendMessage(chatId, "Какую зарплату вы хотите получать?");
                         break;
                     case salary:
                         userParamsService.setSalary(chatId, messageText);
                         param = Params.start;
-                        sendMessage(chatId, userParamsService.findById(chatId).toString());
+                        setReplyButtons(chatId, userParamsService.findById(chatId).toString(), new String[]{"Показать вакансии", "Указать параметры", "Помощь"});
                         break;
                 }
+            }
+
+        } else if (update.hasCallbackQuery()) {
+            String call_data = update.getCallbackQuery().getData();
+            long chatId = update.getCallbackQuery().getMessage().getChatId();
+            long messageId = update.getCallbackQuery().getMessage().getMessageId();
+            Info info = new Info();
+            if (info.getCities().contains(call_data)) {
+                userParamsService.setCity(chatId, update.getCallbackQuery().getData());
+                executeEditMessage("Вы выбрали: " + call_data, chatId, messageId);
+                param = Params.experience;
+                ArrayList<String> experiences = info.getExperiences();
+                String[] experienceButtons = experiences.toArray(new String[0]);
+                setInlineButton(chatId, "Какой у вас опыт работы?", experienceButtons);
+            }
+
+            else if (info.getExperiences().contains(call_data)) {
+                userParamsService.setExperience(chatId, update.getCallbackQuery().getData());
+                executeEditMessage("Вы выбрали: " + call_data, chatId, messageId);
+                param = Params.salary;
+                sendMessage(chatId, "Какую зарплату вы хотите получать?");
             }
         }
     }
@@ -177,9 +201,14 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void executeEditMessage(EditMessageText editMessage){
+    private void executeEditMessage(String text, long chatId, long messageId){
+        EditMessageText message = new EditMessageText();
+        message.setChatId(String.valueOf(chatId));
+        message.setText(text);
+        message.setMessageId((int) messageId);
+
         try {
-            execute(editMessage);
+            execute(message);
         }
         catch (TelegramApiException e) {
             log.error("Error occurred: " + e.getMessage());
@@ -194,27 +223,21 @@ public class TelegramBot extends TelegramLongPollingBot {
         return stringBuilder.toString();
     }
 
-    public void getVacancies(int i, long chatId, Info url) throws IOException {
+    public void getVacancies(int i, long chatId, Info info) throws IOException {
         UserParams userParams = userParamsService.findById(chatId);
         String vacancyName = userParams.getVacancyName();
         String city = userParams.getCity();
-        String schedule = userParams.getSchedule();
+        String schedule = userParams.getExperience();
         String salary = userParams.getSalary();
-        saveVacancies(chatId, url.getHhUrl(vacancyName, city, schedule, salary));
-        saveVacancies(chatId, url.getZrUrl(vacancyName, city, schedule, salary));
+        saveVacancies(chatId, info.getHhUrl(vacancyName, city, schedule, salary));
+        saveVacancies(chatId, info.getZrUrl(vacancyName, city, schedule, salary));
+/*
         saveSuperjobVacancies(chatId, vacancyName, city, schedule, salary);
+*/
 
         sendMessage(chatId, userService.getUserVacancies(chatId).get(i).toString());
         sendMessage(chatId, userService.getUserVacancies(chatId).get(i+1).toString());
         sendMessage(chatId, userService.getUserVacancies(chatId).get(i+2).toString());
-
-        SendMessage sendMessage2 = new SendMessage();
-        sendMessage2.setChatId(String.valueOf(chatId));
-        sendMessage2.setText("нажимайте на 'еще', если хотите посмотреть еще вакансий");
-
-        ButtonClass buttonClass = new ButtonClass();
-        buttonClass.vacancyButton(sendMessage2);
-        executeMessage(sendMessage2);
     }
 
     public void saveVacancies(long chatId, String url) throws IOException {

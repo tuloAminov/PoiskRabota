@@ -18,7 +18,7 @@ public class UserParams {
     private Long id;
     private String vacancyName;
     private String city;
-    private String schedule;
+    private String experience;
     private String salary;
 
     @Override
@@ -26,7 +26,7 @@ public class UserParams {
         return "Вы выбрали: \n" +
                 "название вакансии: " + vacancyName + "\n" +
                 "город: " + city + "\n" +
-                "опыт работы: " + schedule + "\n" +
+                "опыт работы: " + experience + "\n" +
                 "желаемая зп: " + salary;
     }
 }
